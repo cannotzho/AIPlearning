@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<h1>Single Video Page</h1>
+{% endblock %}
+
+{% block body %}
+<br>
+<div class = "content">
+  <table>
+    <tr>
+      <th>Video Name</th>
+      <th>Thumbnail</th>
+      <th>Date Submitted</th>
+    </tr>
+    <tr>
+      <td>{{ video.uri }}</td>
+      <td>{{ video.filename }}</td>
+      <td>{{ video.created.date() }}</td>
+    </tr>
+  </table>
+</div>
+{% endblock %}

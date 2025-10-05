@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<h1>Landing Page</h1>
+{% endblock %}
+
+{% block body %}
+<div class = "directory">
+  <a href = "/api/health">Check the status of the service</a>
+  <h1>Status : {{ status }}</h1>
+  <br>
+  <a href = "/api/videos/">Go to app</a>
+</div>
+{% endblock %}
