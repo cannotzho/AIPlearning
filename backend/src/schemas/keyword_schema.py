@@ -1,8 +1,8 @@
 from flask_restful import fields
 
-videoFields = {
+keywordFields = {
     'id': fields.Integer,
-    'filename':fields.String,
-    'uri':fields.String,
+    'word':fields.String,
+    'vector':fields.String,
     'created':fields.DateTime
 }
