@@ -1,27 +1,38 @@
-
-
-
 #Contains functions to process video and generate list of detected objects and frame timestamps
 
 import cv2
 import numpy as np
 from datetime import datetime, timedelta
 from sentence_transformers import SentenceTransformer
-from src.models import db, VideoModel, KeywordModel, VideoKeywordMapModel
-
-#Input video path/filename
-filename = "GuyBicycle.mp4"
-
+from src.models import db, VideoModel, KeywordModel, VideoKeywordMapModel, keyword_does_not_exist
+from sqlalchemy import desc
+from sqlalchemy.exc import IntegrityError
 
 class VideoProcessor(object):
     #For embedding, load a pretrained Sentence Transformer model
-    model = SentenceTransformer("all-MiniLM-L6-v2")
+    st_model = SentenceTransformer("all-MiniLM-L6-v2")
  
     def __init__(self, filename):
+        self.filename = filename
+        self.uri = filename.rsplit('.', 1)[0].rsplit('\\', 1)[1]
         self.cap = cv2.VideoCapture(filename)
-        self.created_time = str(datetime.utcnow())
+        self.created_time = datetime.utcnow()
         self.ts_detections_dict = {}
-    pass
+    
+    #method for embedding vectors. Made public so that I can call this manually if required
+    def keyword_vector(self, keyword):
+        return self.st_model.encode(keyword)
+    
+    #method for adding video to database. Might consider calling this on __init__ since videos should be added if they're going to be processed
+    def add_video(self):
+        new_video = VideoModel(filename = self.filename, created = self.created_time, uri = self.uri)
+        try:
+            db.session.add(new_video)
+            db.session.commit()
+        except IntegrityError:
+            print("Something went wrong, integrity error raised. Video may already exist")
+            db.session.rollback()
+
 
 class MobileNetProcessor(VideoProcessor):
     #Object Detection network
@@ -32,14 +43,20 @@ class MobileNetProcessor(VideoProcessor):
     14: 'motorbike', 15: 'person', 16: 'pottedplant',
     17: 'sheep', 18: 'sofa', 19: 'train', 20: 'tvmonitor'}
 
-    net = cv2.dnn.readNetFromCaffe("MobileNetSSD_deploy.prototxt", "MobileNetSSD_deploy.caffemodel")
+    #Hardcoded network files :/
+    net = cv2.dnn.readNetFromCaffe("backend\src\services\MobileNetSSD_deploy.prototxt", "backend\src\services\MobileNetSSD_deploy.caffemodel")
 
-    def detect_objects_in_frame(self, frame, confidence_threshold : float = 0.5): #return array of detected objects in a list of strings. Takes in threshold confidence as an arg
+
+    #return array of detected objects in a list of strings. Takes in threshold confidence as an arg
+    #This function also adds any newly detected objects to the embedded vectors database
+    def detect_objects_in_frame(self, frame, confidence_threshold : float = 0.5):
+
         detected_objects_list = []
-        #do stuff
-        #perform object detection on the frame
-            # Get frame dimensions
-        (h, w) = frame.shape[:2]
+
+        # Perform object detection on the frame
+        # Get frame dimensions
+        # (For drawing bounding box)
+        # (h, w) = frame.shape[:2]
 
         # Preprocess the frame for the MobileNet model
         blob = cv2.dnn.blobFromImage(cv2.resize(frame, (300, 300)), 0.007843, (300, 300), 127.5)
@@ -57,19 +74,31 @@ class MobileNetProcessor(VideoProcessor):
                 # Extract the index of the class label and the bounding box coordinates
                 idx = int(detections[0, 0, i, 1])
 
-                #Keep box info for highlighting stuff later...
-                box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
+                #Info for drawing bounding boxes and labels 
+                #Might use for highlighting stuff later... Commented out for now
+                # box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
+                # (startX, startY, endX, endY) = box.astype("int")
+                # cv2.rectangle(frame, (startX, startY), (endX, endY), (0, 255, 0), 2)
+                # cv2.putText(frame, self.classNames[idx], (startX, startY - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
                 # Add the className to the list of detected objects associated with the frame_timestamp
                 detected_objects_list.append(self.classNames[idx])
 
-                # Check if the keyword already exists within the table 
-
+                # Check if the keyword already exists within the table
+                # (Not sure if this is the best place to do the check but i'll leave it here for now)
+                if keyword_does_not_exist(self.classNames[idx]):#if it does not exist, vectorize and add
+                    #Add new keyword-vector entry if it doesn't exist
+                    embedding = self.keyword_vector(self.classNames[idx])
+                    newrow = KeywordModel(word = self.classNames[idx], vector = embedding, created = self.created_time)
+                    db.session.add(newrow)
+                    db.session.commit()
+                else:
+                    pass
+        
         return detected_objects_list
 
-    def get_framets_keyword_dict(self, histogram_threshold = 0.999):
-        # self.cap = cv2.VideoCapture(filename)
-
+    #Generate dictionary where keys are interesting frames and values are lists of detected objects
+    def get_framets_keyword_dict(self, histogram_threshold : float = 0.999):
         current_frame = 0
         self.ts_detections_dict = {}
 
@@ -83,6 +112,7 @@ class MobileNetProcessor(VideoProcessor):
 
         while True:
             incoming_data, frame = self.cap.read()
+            #break loop once no more incoming data, i.e. reached the end of the file
             if not incoming_data:
                 break
 
@@ -90,6 +120,7 @@ class MobileNetProcessor(VideoProcessor):
             histogram = cv2.calcHist([frame], [0, 1, 2], None, [8, 8, 8], [0, 256, 0, 256, 0, 256])
             histogram = cv2.normalize(histogram, histogram).flatten()
 
+            #Get similarity score between histograms which indicates whether there was a significant change between frames
             d = cv2.compareHist(previous_histogram, histogram, cv2.HISTCMP_CORREL)
             current_time = self.cap.get(cv2.CAP_PROP_POS_MSEC) / 1000.0
 
@@ -108,14 +139,24 @@ class MobileNetProcessor(VideoProcessor):
 
         return self.ts_detections_dict
 
-    def writeToDB():
-        pass
+    #iterate through frame_ts to object detections dict to add mappings to the database table
+    def process(self):
 
-    
-    def process():
-        pass
+        for frame_timestamp in self.ts_detections_dict.keys():
+            for keyword in self.ts_detections_dict[frame_timestamp]:
+
+                #To map: Add video_id, keyword_id, frame timestamp of associated keyword and created timestamp as new entries
+                #video_id and created timestamp remains the same throughout. ts_detections_dict can be iterated through for adding
+                #keyword_id and frame_ts 
+
+                v_id = db.session.execute(db.select(VideoModel).order_by(desc(VideoModel.rowid))).scalars().first().rowid
+                k_id = db.session.execute(db.select(KeywordModel).where(KeywordModel.word == keyword)).scalars().first().id
+                mapping_new_row = VideoKeywordMapModel(video_id = v_id, keyword_id = k_id, frame_ts = frame_timestamp, created = self.created_time)
+                db.session.add(mapping_new_row)
+                db.session.commit()
+
 
 if __name__ == "__main__":
-    #Run process on sample video
+    #Run process on sample video. This can be run during health check
     
     pass
