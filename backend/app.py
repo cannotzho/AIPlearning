@@ -1,7 +1,7 @@
 from flask import Flask, render_template, redirect
 from sqlalchemy_utils import database_exists
 from src.routes import api_bp
-from src.models import db, KeywordModel, VideoModel
+from src.models import db, KeywordModel, VideoModel, VideoKeywordMapModel
 import os
 
 UPLOADS_FOLDER = 'uploads'
@@ -25,6 +25,8 @@ def reset_all():
     #delete all video entries and video files in uploads folder
     #Route currently used for testing only
     db.session.query(VideoModel).delete()
+    db.session.query(KeywordModel).delete()
+    db.session.query(VideoKeywordMapModel).delete()
     db.session.commit()
     try:
         for filename in os.listdir(UPLOADS_FOLDER):
