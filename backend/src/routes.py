@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, make_response, request
+from flask import Blueprint, render_template, redirect, make_response, request, jsonify
 from flask_restful import Resource, Api, reqparse
 from src.models import db, VideoModel, KeywordModel, VideoKeywordMapModel
 from src.services.video_service import MobileNetProcessor
@@ -33,11 +33,11 @@ def index():
 
 #Returns the status of the service
 @api_bp.route('/health', methods = ['GET'])
-def health(self, status):
-    self.status = status
+def health():
     #Run service to check on dependencies, database connectivity, and resource availability
+    #nvm, it doesn't need to be so complicated
     headers = {'Content-Type': 'text/html'}
-    response = make_response(render_template("index.html", status = self.status), 200, headers)
+    response = make_response(render_template("index.html", status = "UP"), 200, headers)
     return response
 
 #Accepts video files, performs key frame extraction, object detection, and saves results in database.
