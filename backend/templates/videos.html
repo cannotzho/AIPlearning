@@ -5,7 +5,7 @@
 {% endblock %}
 
 {% block body %}
-<a href = "/reset_all">Delete all rows in video table</a>
+<a href = "/reset_all">Delete all table data</a>
 <div class = "upload">
   <form action="/api/process" method="POST" enctype="multipart/form-data">
     <label for="video-upload">Choose a video to upload:</label>
@@ -14,7 +14,14 @@
     <input type="submit" value="Upload Video">
   </form>
 </div>
-
+<br>
+<div class = "search">
+  <form action = "/api/search/{{query}}" method = "GET">
+    <input type = "text" id = "query" name = "query">
+    <input type = "submit" value = "Search">
+  </form>
+</div>
+<br>
 <div class = "content">
   <table>
     <tr>
