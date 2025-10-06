@@ -21,7 +21,9 @@ class VideoProcessor(object):
     
     #method for embedding vectors. Made public so that I can call this manually if required
     def keyword_vector(self, keyword):
-        return self.st_model.encode(keyword)
+        embeddings = [keyword]
+        result = self.st_model.encode(embeddings)
+        return result[0]
     
     #method for adding video to database. Might consider calling this on __init__ since videos should be added if they're going to be processed
     def add_video(self):
