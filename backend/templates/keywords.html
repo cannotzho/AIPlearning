@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<h1>Keyword Table</h1>
+{% endblock %}
+
+{% block body %}
+<div class = "content">
+  <table>
+    <tr>
+      <th>id</th>
+      <th>Keyword</th>
+      <th>Vector</th>
+    </tr>
+    {% for keyword in keywords %}
+    <tr>
+      <td>{{ keyword.id }}</td>
+      <td>{{ keyword.word }}</td>
+      <td>{{ keyword.vector }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}
