@@ -1,7 +1,8 @@
-from flask import Blueprint, render_template, redirect, make_response
+from flask import Blueprint, render_template, redirect, make_response, request
 from flask_restful import Resource, Api, reqparse
 from src.models import db, VideoModel, KeywordModel, VideoKeywordMapModel
 from src.services.video_service import MobileNetProcessor
+from src.services.search_service import SearchHandler
 from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
 import os
@@ -20,8 +21,7 @@ def allowed_file(filename):
 api_bp = Blueprint('api', __name__)
 api = Api(api_bp)
 
-video_args = reqparse.RequestParser()
-video_args.add_argument('video', location = 'files', type = FileStorage, required = True, help = "File cannot be blank")
+
 
 @api_bp.route('/')
 def index():
@@ -46,9 +46,12 @@ class ProcessedVideo(Resource):
 
     # @marshal_with(video_schema.videoFields)
     def post(self):
-        args = video_args.parse_args()
+        args = reqparse.RequestParser()
+        args.add_argument('video', location = 'files', type = FileStorage, required = True, help = "File cannot be blank")
 
-        video_file = args['video']
+        video_args = args.parse_args()
+
+        video_file = video_args['video']
         # Securely save the file
         filename = secure_filename(video_file.filename)
 
@@ -56,8 +59,8 @@ class ProcessedVideo(Resource):
             return {'message': 'File type not allowed'}, 400
         
         filename = os.path.join(UPLOAD_FOLDER, filename)
-        # if os.path.exists(filename):
-        #     return {'message': f'A file already exists at the following path "{filename}"'}, 409
+        if os.path.exists(filename):
+            return {'message': f'A file already exists at the following path "{filename}"'}, 409
         
         video_file.save(filename)
         
@@ -101,7 +104,31 @@ class Video(Resource):
     
 api.add_resource(Video, '/videos/<int:v_id>')
 
+#Test endpoint for viewing keyword-vector tables
+class Keywords(Resource):
+    def get(self):
+        keywords = db.paginate(db.select(KeywordModel).order_by(KeywordModel.id))
+        headers = {'Content-Type': 'text/html'}
+        response = make_response(render_template("keywords.html", keywords = keywords), 200, headers)
+        return response
+    
+api.add_resource(Keywords, '/keywords/')
+
+
 #Performs a full-text search on video summaries based on detected objects or video file name.
-@api_bp.route('/search', methods = ['GET'])
-def search(self):
-    pass
+class SearchResult(Resource):
+    def get(self):
+        search_query = request.args.get('query', '')
+        search_handler = SearchHandler()
+        result = search_handler.process_search_results(search_query)
+        headers = {'Content-Type': 'text/html'}
+        response = make_response(render_template("search_results.html", videos = result), 200, headers)
+        return response
+    
+api.add_resource(SearchResult, '/search/')
+
+# @api_bp.route('/search/<string:search_query>', methods = ['GET'])
+# def search(self, search_query):
+#     search_handler = SearchHandler()
+#     result = search_handler.get_sentence_ann(search_query)
+#     return result
