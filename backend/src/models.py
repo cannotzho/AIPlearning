@@ -11,6 +11,7 @@ class KeywordModel(db.Model):
     word = db.Column(db.String(50), unique = True, nullable = False)
     vector = db.Column(Vector(384), unique = True, nullable = False)
     created = db.Column(db.DateTime, unique = False, nullable = False)
+    association = db.relationship('VideoKeywordMapModel', backref = 'keyword')
     
     def __repr__(self):
         return f"Keyword(id = {self.id}, word = {self.word}, created = {self.created})"
@@ -24,6 +25,7 @@ class VideoModel(db.Model):
     filename = db.Column(db.String(60), unique = True, nullable = False)
     uri = db.Column(db.String(50), unique = False)
     created = db.Column(db.DateTime, unique = False, nullable = False)
+    association = db.relationship('VideoKeywordMapModel', backref = 'video')
 
     def __repr__(self):
         return f"Video(id = {self.rowid}, filename = {self.filename}, created = {self.created})"
