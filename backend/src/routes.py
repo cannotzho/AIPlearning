@@ -1,10 +1,13 @@
 from flask import Blueprint, render_template, redirect, make_response, request, jsonify
 from flask_restful import Resource, Api, reqparse
 from src.models import db, VideoModel, KeywordModel, VideoKeywordMapModel
+from src.schemas import ma
+from src.schemas.video_schema import VideoSchema
 from src.services.video_service import MobileNetProcessor
 from src.services.search_service import SearchHandler
 from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
+from datetime import datetime
 import os
 
 UPLOAD_FOLDER = 'uploads' # Define your upload folder
@@ -44,7 +47,6 @@ def health():
 #Try to keep endpoints resourceful
 class ProcessedVideo(Resource):
 
-    # @marshal_with(video_schema.videoFields)
     def post(self):
         args = reqparse.RequestParser()
         args.add_argument('video', location = 'files', type = FileStorage, required = True, help = "File cannot be blank")
@@ -79,16 +81,24 @@ class ProcessedVideo(Resource):
 
         processor.process()
 
-        return redirect('/api/videos/')
+        return redirect('/')
 
 api.add_resource(ProcessedVideo, '/process')
 
 #Retrieves all processed videos from the database.
 class Videos(Resource):
     def get(self):
-        videos = db.paginate(db.select(VideoModel).order_by(VideoModel.created))
-        headers = {'Content-Type': 'text/html'}
-        response = make_response(render_template("videos.html", videos = videos), 200, headers)
+        # videos = db.paginate(db.select(VideoModel).order_by(VideoModel.created))
+        videos = db.session.execute(db.select(VideoModel).order_by(VideoModel.created)).scalars()
+        
+        video_schema = VideoSchema()
+        serialized_list = []
+        for video in videos:
+            serialized_list.append(video_schema.dump(video))
+        
+        headers = {'Content-Type': 'application/json'}
+        response = make_response(jsonify(serialized_list), 200, headers)
+        
         return response
     
 api.add_resource(Videos, '/videos/')
@@ -97,9 +107,16 @@ api.add_resource(Videos, '/videos/')
 class Video(Resource):
     def get(self, v_id):
         self.v_id = v_id
-        video = db.session.execute(db.select(VideoModel).where(VideoModel.rowid == self.v_id)).scalars().first()
-        headers = {'Content-Type': 'text/html'}
-        response = make_response(render_template("video.html", video = video), 200, headers)
+        # video = db.session.execute(db.select(VideoModel).where(VideoModel.rowid == self.v_id)).scalars().first()
+        datarows : list[VideoKeywordMapModel] = db.session.execute(db.select(VideoKeywordMapModel).where(VideoKeywordMapModel.video_id == self.v_id)).scalars()
+
+        serialized_list = []
+        for row in datarows:
+            serialized_list.append(row.frame_ts)
+
+        headers = {'Content-Type': 'application/json'}
+        response = make_response(jsonify(serialized_list), 200, headers)
+        
         return response
     
 api.add_resource(Video, '/videos/<int:v_id>')
