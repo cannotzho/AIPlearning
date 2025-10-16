@@ -1,8 +1,8 @@
-from flask_restful import fields
+from src.schemas import ma
+from marshmallow import fields
+from src.models import VideoModel
 
-videoFields = {
-    'id': fields.Integer,
-    'filename':fields.String,
-    'uri':fields.String,
-    'created':fields.DateTime
-}
+class VideoSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = VideoModel
+        load_instance = True 

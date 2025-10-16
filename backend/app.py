@@ -1,4 +1,6 @@
 from flask import Flask, render_template, redirect
+from flask_cors import CORS
+from src.schemas import ma
 from sqlalchemy_utils import database_exists
 from src.routes import api_bp
 from src.models import db, KeywordModel, VideoModel, VideoKeywordMapModel
@@ -8,9 +10,12 @@ UPLOADS_FOLDER = 'uploads'
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///processed_videos.db'
+CORS(app)
 
 db.init_app(app)
 app.register_blueprint(api_bp, url_prefix='/api')
+
+ma.init_app(app)
 
 if not database_exists('sqlite:///instance/processed_videos.db'):
     with app.app_context():
