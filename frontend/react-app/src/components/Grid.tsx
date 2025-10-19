@@ -1,7 +1,7 @@
-import { ReactNode, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Card from "./Card";
 
-interface Video {
+export interface Video {
   rowid: number;
   filename: string;
   uri: string;
@@ -18,12 +18,16 @@ function Grid({ children, video }: Props) {
   const getTimestamps = (video_id: number = 0) => {
     fetch(`api/videos/${video_id}`)
       .then((response) => response.json())
-      .then((data) => setKeyframes(data));
+      .then((data) => {
+        if (keyframes != data) {
+          setKeyframes(data);
+        }
+      });
   };
 
   useEffect(() => {
     getTimestamps(video?.rowid);
-  }, [keyframes]);
+  }, [video]);
 
   return (
     <>
@@ -33,8 +37,13 @@ function Grid({ children, video }: Props) {
       <div className="container-lg">
         <div className="row m-1">
           {keyframes.map((keyframe, index) => (
-            <div className="col-sm-4 col-lg-3 m-2" key={"keyframe " + index}>
-              <Card date_created={video?.created} frame_timestamp={keyframe} />
+            <div className="col-sm-12 col-xl-4 m-5" key={"keyframe " + index}>
+              <Card
+                image_url={video?.uri}
+                frame_number={index}
+                date_created={video?.created}
+                frame_timestamp={keyframe}
+              />
             </div>
           ))}
         </div>
