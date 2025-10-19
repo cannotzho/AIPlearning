@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, make_response, request, jsonify, send_file, send_from_directory
+from flask import Blueprint, render_template, redirect, make_response, request, jsonify, send_file
 from flask_restful import Resource, Api, reqparse
 from src.models import db, VideoModel, KeywordModel, VideoKeywordMapModel
 from src.schemas import ma

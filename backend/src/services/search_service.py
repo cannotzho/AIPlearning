@@ -1,6 +1,6 @@
 
 from sentence_transformers import SentenceTransformer
-from sklearn.neighbors import KDTree, BallTree
+from sklearn.neighbors import KDTree
 import numpy as np
 from src.models import db, VideoModel, KeywordModel, VideoKeywordMapModel
 from sqlalchemy import func
@@ -78,6 +78,7 @@ class SearchHandler(object):
     def get_unique_video(self, map_row):
         return map_row.video
     
+    #Main function called to process search query
     def process_search_results(self, query, search_type: int):
 
         #search by detected objects

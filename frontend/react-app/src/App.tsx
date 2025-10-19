@@ -1,8 +1,5 @@
-import { ReactNode, useEffect, useState } from "react";
-import Alert from "./components/Alert";
-import Button from "./components/Button";
+import { useEffect, useState } from "react";
 import Grid, { Video } from "./components/Grid";
-import Card from "./components/Card";
 import ListGroup from "./components/ListGroup";
 import Searchbar from "./components/Searchbar";
 import UploadBtn from "./components/UploadBtn";
@@ -34,8 +31,8 @@ function App() {
     <div className="container-xxl">
       <div className="row">
         <div className="col-4 bg-secondary rounded-4 mt-2" key="sidebar">
+          {" "}
           {/* Column for sidebar */}
-
           {/* Upload Button */}
           <UploadBtn upload_route="/api/process" />
           {/* Searchbar */}
@@ -44,7 +41,7 @@ function App() {
             option2="Filename"
             handleResponse={handleSearch}
           />
-          {/* Video List, might refactor this to type-safety for items next time... */}
+          {/* Video List*/}
           <ListGroup
             videos={displayedVideos}
             heading="Processed Videos"
@@ -52,6 +49,7 @@ function App() {
           />
         </div>
         <div className="col-8 mt-2 bg-info rounded-4" key="main">
+          {" "}
           {/* Column for main content */}
           <Grid video={selectedVideo}>Video Details</Grid>
         </div>
