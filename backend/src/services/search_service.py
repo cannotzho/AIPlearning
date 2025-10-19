@@ -10,6 +10,8 @@ class SearchHandler(object):
     #Initiate transformer to encode queries
     st_model = SentenceTransformer("all-MiniLM-L6-v2")
 
+    #There should be a check here if the sentence transformer can't load, then it needs to eventually return a message to the frontend server to indicate the service is down
+
     def __init__(self):
         #Initialize np array from keyword database
         self.Corpus = np.array(db.session.execute(db.select(KeywordModel.vector).order_by(KeywordModel.id)).scalars().all())
@@ -55,19 +57,39 @@ class SearchHandler(object):
     def get_associated_videos_from_keywords(self, keyword_indices : list[int]):
         associated_videos = []
         #For each keyword, get all videos associated with that keyword via the map
-        for keyword_id in keyword_indices:
+        for keyword_id in keyword_indices[0]:
             associations = db.session.execute(db.select(VideoKeywordMapModel).where(VideoKeywordMapModel.keyword_id == int(keyword_id + 1))).scalars().unique(self.get_unique_video).all()
             for row in associations:
                 associated_videos.append(row.video)
         return associated_videos
     
-    #Callable for compressing association results into unique video rows
-    def get_unique_video(self, maprow):
-        return maprow.video
+    def get_associated_videos_from_filename(self, filename_indices : list[int]):
+        associated_videos = []
+        #For each keyword, get all videos associated with that keyword via the map
+        for index in filename_indices[0]:
+            filename = db.session.execute(db.select(KeywordModel).where(KeywordModel.id == int(index + 1))).scalars().first().word
+            associated_vid = db.session.execute(db.select(VideoModel).where(VideoModel.uri == filename)).scalars().first()
+            if associated_vid != None:
+                associated_videos.append(associated_vid)
+
+        return associated_videos
     
-    def process_search_results(self, query):
-        keyword_indices = self.get_sentence_ann(query)
-        associated_videos = self.get_associated_videos_from_keywords(keyword_indices)
+    #Callable for compressing association results into unique video rows
+    def get_unique_video(self, map_row):
+        return map_row.video
+    
+    def process_search_results(self, query, search_type: int):
+
+        #search by detected objects
+        if int(search_type):
+            keyword_indices = self.get_sentence_ann(query)
+            associated_videos = self.get_associated_videos_from_keywords(keyword_indices)
+        
+        #search by filenames
+        else:
+            keyword_indices = self.get_sentence_ann(query, k =3)
+            associated_videos = self.get_associated_videos_from_filename(keyword_indices)
+
         return associated_videos
 
     #Test function for checking database    
