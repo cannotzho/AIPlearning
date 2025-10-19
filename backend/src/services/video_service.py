@@ -7,6 +7,11 @@ from sentence_transformers import SentenceTransformer
 from src.models import db, VideoModel, KeywordModel, VideoKeywordMapModel, keyword_does_not_exist
 from sqlalchemy import desc
 from sqlalchemy.exc import IntegrityError
+import os
+
+KEYFRAMES_FOLDER = 'backend/keyframes'
+if not os.path.exists(KEYFRAMES_FOLDER):
+    os.makedirs(KEYFRAMES_FOLDER, exist_ok=True)
 
 class VideoProcessor(object):
     #For embedding, load a pretrained Sentence Transformer model
@@ -18,6 +23,16 @@ class VideoProcessor(object):
         self.cap = cv2.VideoCapture(filename)
         self.created_time = datetime.utcnow()
         self.ts_detections_dict = {}
+        self.keyframes_path = os.path.join(KEYFRAMES_FOLDER, f'{self.uri}')
+        if not os.path.exists(self.keyframes_path):
+            os.makedirs(self.keyframes_path, exist_ok=True)
+
+        if keyword_does_not_exist(self.uri):
+        #Add new keyword-vector entry for the filename if it doesn't exist
+            embedding = self.keyword_vector(self.uri)
+            newrow = KeywordModel(word = self.uri, vector = embedding, created = self.created_time)
+            db.session.add(newrow)
+            db.session.commit()
     
     #method for embedding vectors. Made public so that I can call this manually if required
     def keyword_vector(self, keyword):
@@ -48,17 +63,16 @@ class MobileNetProcessor(VideoProcessor):
     #Hardcoded network files :/
     net = cv2.dnn.readNetFromCaffe("backend\src\services\MobileNetSSD_deploy.prototxt", "backend\src\services\MobileNetSSD_deploy.caffemodel")
 
-
     #return array of detected objects in a list of strings. Takes in threshold confidence as an arg
     #This function also adds any newly detected objects to the embedded vectors database
-    def detect_objects_in_frame(self, frame, confidence_threshold : float = 0.5):
+    def detect_objects_in_frame(self, frame, confidence_threshold : float = 0.5, frame_number : int = 0):
 
         detected_objects_list = []
 
         # Perform object detection on the frame
         # Get frame dimensions
         # (For drawing bounding box)
-        # (h, w) = frame.shape[:2]
+        (h, w) = frame.shape[:2]
 
         # Preprocess the frame for the MobileNet model
         blob = cv2.dnn.blobFromImage(cv2.resize(frame, (300, 300)), 0.007843, (300, 300), 127.5)
@@ -78,17 +92,17 @@ class MobileNetProcessor(VideoProcessor):
 
                 #Info for drawing bounding boxes and labels 
                 #Might use for highlighting stuff later... Commented out for now
-                # box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
-                # (startX, startY, endX, endY) = box.astype("int")
-                # cv2.rectangle(frame, (startX, startY), (endX, endY), (0, 255, 0), 2)
-                # cv2.putText(frame, self.classNames[idx], (startX, startY - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
+                (startX, startY, endX, endY) = box.astype("int")
+                cv2.rectangle(frame, (startX, startY), (endX, endY), (0, 255, 0), 2)
+                cv2.putText(frame, self.classNames[idx], (startX, startY - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
                 # Add the className to the list of detected objects associated with the frame_timestamp
                 detected_objects_list.append(self.classNames[idx])
 
                 # Check if the keyword already exists within the table
                 # (Not sure if this is the best place to do the check but i'll leave it here for now)
-                if keyword_does_not_exist(self.classNames[idx]):#if it does not exist, vectorize and add
+                if keyword_does_not_exist(self.classNames[idx]):
                     #Add new keyword-vector entry if it doesn't exist
                     embedding = self.keyword_vector(self.classNames[idx])
                     newrow = KeywordModel(word = self.classNames[idx], vector = embedding, created = self.created_time)
@@ -96,6 +110,9 @@ class MobileNetProcessor(VideoProcessor):
                     db.session.commit()
                 else:
                     pass
+
+        #save image to keyframes folder
+        cv2.imwrite(os.path.join(self.keyframes_path, f'{frame_number}.jpg'), frame)
         
         return detected_objects_list
 
@@ -111,13 +128,15 @@ class MobileNetProcessor(VideoProcessor):
         previous_histogram = cv2.normalize(previous_histogram, previous_histogram).flatten()
 
         last_scene_change = 0
+        saved_frames = 0
 
         while True:
             incoming_data, frame = self.cap.read()
             #break loop once no more incoming data, i.e. reached the end of the file
             if not incoming_data:
                 break
-
+            
+            
             current_frame += 1
             histogram = cv2.calcHist([frame], [0, 1, 2], None, [8, 8, 8], [0, 256, 0, 256, 0, 256])
             histogram = cv2.normalize(histogram, histogram).flatten()
@@ -131,11 +150,12 @@ class MobileNetProcessor(VideoProcessor):
             if d < histogram_threshold and (current_time - last_scene_change >= 1 or last_scene_change == 0):
 
                 #Get frame timestamp
-                frame_ts = str(timedelta(seconds=current_time))
+                frame_ts = str(timedelta(seconds=current_time))[:10]
                 last_scene_change = current_time
 
-                #perform object detection on the frame and assign list of objects to key frame in the timestamp dictionary
-                self.ts_detections_dict[frame_ts] = self.detect_objects_in_frame(frame, 0.5)
+                #perform object detection on the frame and assign list of objects to key frame in the timestamp dictionary, and save frame to folder
+                self.ts_detections_dict[frame_ts] = self.detect_objects_in_frame(frame, 0.5, saved_frames)
+                saved_frames += 1
 
             previous_histogram = histogram
 

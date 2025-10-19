@@ -6,7 +6,7 @@ from src.routes import api_bp
 from src.models import db, KeywordModel, VideoModel, VideoKeywordMapModel
 import os
 
-UPLOADS_FOLDER = 'uploads'
+UPLOADS_FOLDER = 'backend/uploads'
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///processed_videos.db'
@@ -41,7 +41,7 @@ def reset_all():
         print(f"All files in '{UPLOADS_FOLDER}' deleted successfully.")
     except OSError as e:
         print(f"Error deleting files in '{UPLOADS_FOLDER}': {e}")
-    return redirect('/api/videos/')
+    return redirect('/')
 
 if __name__ == "__main__":
     app.run(debug = True)

@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, make_response, request, jsonify
+from flask import Blueprint, render_template, redirect, make_response, request, jsonify, send_file, send_from_directory
 from flask_restful import Resource, Api, reqparse
 from src.models import db, VideoModel, KeywordModel, VideoKeywordMapModel
 from src.schemas import ma
@@ -10,11 +10,15 @@ from werkzeug.utils import secure_filename
 from datetime import datetime
 import os
 
-UPLOAD_FOLDER = 'uploads' # Define your upload folder
+UPLOAD_FOLDER = 'backend/uploads' # Define your upload folder
 if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 ALLOWED_EXTENSIONS = {'mp4', 'avi', 'mov', 'mkv'}
+
+KEYFRAMES_FOLDER = 'backend/keyframes'
+if not os.path.exists(KEYFRAMES_FOLDER):
+    os.makedirs(KEYFRAMES_FOLDER, exist_ok=True)
 
 def allowed_file(filename):
     return '.' in filename and \
@@ -23,7 +27,6 @@ def allowed_file(filename):
 #Start API server, add endpoints and load the DB
 api_bp = Blueprint('api', __name__)
 api = Api(api_bp)
-
 
 
 @api_bp.route('/')
@@ -107,19 +110,29 @@ api.add_resource(Videos, '/videos/')
 class Video(Resource):
     def get(self, v_id):
         self.v_id = v_id
-        # video = db.session.execute(db.select(VideoModel).where(VideoModel.rowid == self.v_id)).scalars().first()
         datarows : list[VideoKeywordMapModel] = db.session.execute(db.select(VideoKeywordMapModel).where(VideoKeywordMapModel.video_id == self.v_id)).scalars()
 
         serialized_list = []
         for row in datarows:
             serialized_list.append(row.frame_ts)
 
+        serialized_list = list(set(serialized_list))
         headers = {'Content-Type': 'application/json'}
         response = make_response(jsonify(serialized_list), 200, headers)
         
         return response
     
 api.add_resource(Video, '/videos/<int:v_id>')
+
+#Retrieve keyframe from video
+class Keyframe(Resource):
+    def get(self, filename, frame_number):
+        filepath = f'keyframes\\{filename}'
+
+        return send_file(os.path.join(filepath, f'{frame_number}.jpg'))
+    
+api.add_resource(Keyframe, '/keyframes/<string:filename>/<int:frame_number>')
+
 
 #Test endpoint for viewing keyword-vector tables
 class Keywords(Resource):
@@ -135,17 +148,15 @@ api.add_resource(Keywords, '/keywords/')
 #Performs a full-text search on video summaries based on detected objects or video file name.
 class SearchResult(Resource):
     def get(self):
-        search_query = request.args.get('query', '')
+        search_query, search_type = request.args.get('query'), request.args.get('search_type')
         search_handler = SearchHandler()
-        result = search_handler.process_search_results(search_query)
-        headers = {'Content-Type': 'text/html'}
-        response = make_response(render_template("search_results.html", videos = result), 200, headers)
+        result = search_handler.process_search_results(query=search_query, search_type=search_type)
+        video_schema = VideoSchema()
+        serialized_list = []
+        for video in result:
+            serialized_list.append(video_schema.dump(video))
+        headers = {'Content-Type': 'application/json'}
+        response = make_response(serialized_list, 200, headers)
         return response
     
 api.add_resource(SearchResult, '/search/')
-
-# @api_bp.route('/search/<string:search_query>', methods = ['GET'])
-# def search(self, search_query):
-#     search_handler = SearchHandler()
-#     result = search_handler.get_sentence_ann(search_query)
-#     return result
