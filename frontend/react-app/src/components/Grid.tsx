@@ -16,7 +16,7 @@ interface Props {
 function Grid({ children, video }: Props) {
   const [keyframes, setKeyframes] = useState([]);
   const getTimestamps = (video_id: number = 0) => {
-    fetch(`api/videos/${video_id}`)
+    fetch(`api/keyframes/${video_id}`)
       .then((response) => response.json())
       .then((data) => {
         if (keyframes != data) {
@@ -30,14 +30,26 @@ function Grid({ children, video }: Props) {
   }, [video]);
 
   return (
-    <>
-      <h1 className="mt-2">{children}</h1>
-      {video === undefined && <h2>Select a video to begin</h2>}
-      <h2>{video?.uri}</h2>
-      <div className="container-lg">
-        <div className="row m-1">
+    <div className="container-lg vh-100" style={{ maxHeight: "100vh" }}>
+      <div className="">
+        <h1 className="text-center">{children}</h1>
+        {video === undefined && (
+          <h2 className="text-center">Select a video to begin</h2>
+        )}
+      </div>
+      <div className="row" style={{ maxHeight: "50vh" }}>
+        <h2>{video?.uri}</h2>
+        <video
+          className="object-fit-contain"
+          src={"/api/videos/" + video?.rowid}
+          controls
+          style={{ maxHeight: "50vh" }}
+        />
+      </div>
+      <div className="row mt-5 overflow-auto">
+        <div className="d-inline-flex d-nowrap">
           {keyframes.map((keyframe, index) => (
-            <div className="col-sm-12 col-xl-4 m-5" key={"keyframe " + index}>
+            <div className="m-3" key={"keyframe " + index}>
               <Card
                 image_url={video?.uri}
                 frame_number={index}
@@ -48,7 +60,7 @@ function Grid({ children, video }: Props) {
           ))}
         </div>
       </div>
-    </>
+    </div>
   );
 }
 

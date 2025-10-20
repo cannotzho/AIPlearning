@@ -12,7 +12,7 @@ function Card({
   frame_timestamp,
 }: Props) {
   return (
-    <div className="card m-4" style={{ width: 350, height: 300 }}>
+    <div className="card object-fit-contain" style={{ width: 300 }}>
       <img
         src={"/api/keyframes/" + image_url + "/" + frame_number}
         className="card-img-top img-fluid"
