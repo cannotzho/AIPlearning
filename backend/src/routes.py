@@ -43,7 +43,7 @@ def health():
     #Run service to check on dependencies, database connectivity, and resource availability
     #nvm, it doesn't need to be so complicated
     headers = {'Content-Type': 'text/html'}
-    response = make_response(render_template("index.html", status = "UP"), 200, headers)
+    response = make_response(jsonify("Backend is live"), 200, headers)
     return response
 
 #Accepts video files, performs key frame extraction, object detection, and saves results in database.
@@ -61,11 +61,11 @@ class ProcessedVideo(Resource):
         filename = secure_filename(video_file.filename)
 
         if '.' in filename and filename.rsplit('.', 1)[1].lower() not in ALLOWED_EXTENSIONS:
-            return {'message': 'File type not allowed'}, 400
+            return redirect('/', 415, {'message': 'File type not allowed'})
         
         filename = os.path.join(UPLOAD_FOLDER, filename)
         if os.path.exists(filename):
-            return {'message': f'A file already exists at the following path "{filename}"'}, 409
+            return redirect('/', 422, {'message': f'A file already exists at the following path "{filename}"'})
         
         video_file.save(filename)
         
@@ -133,7 +133,6 @@ class Keyframe(Resource):
     
 api.add_resource(Keyframe, '/keyframes/<string:filename>/<int:frame_number>')
 
-
 #Test endpoint for viewing keyword-vector tables
 class Keywords(Resource):
     def get(self):
@@ -143,7 +142,6 @@ class Keywords(Resource):
         return response
     
 api.add_resource(Keywords, '/keywords/')
-
 
 #Performs a full-text search on video summaries based on detected objects or video file name.
 class SearchResult(Resource):
