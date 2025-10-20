@@ -10,13 +10,13 @@ from werkzeug.utils import secure_filename
 from datetime import datetime
 import os
 
-UPLOAD_FOLDER = 'backend/uploads' # Define your upload folder
+UPLOAD_FOLDER = 'uploads' # Define your upload folder
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 ALLOWED_EXTENSIONS = {'mp4', 'avi', 'mov', 'mkv'}
 
-KEYFRAMES_FOLDER = 'backend/keyframes'
+KEYFRAMES_FOLDER = 'keyframes'
 if not os.path.exists(KEYFRAMES_FOLDER):
     os.makedirs(KEYFRAMES_FOLDER, exist_ok=True)
 
@@ -110,6 +110,15 @@ api.add_resource(Videos, '/videos/')
 class Video(Resource):
     def get(self, v_id):
         self.v_id = v_id
+        video : VideoModel = db.session.execute(db.select(VideoModel).where(VideoModel.rowid == self.v_id)).scalars().first()
+        file_path = os.path.join(UPLOAD_FOLDER, f'{video.uri}.mp4')
+        return send_file(file_path)
+    
+api.add_resource(Video, '/videos/<int:v_id>')
+
+class Keyframes(Resource):
+    def get(self, v_id):
+        self.v_id = v_id
         datarows : list[VideoKeywordMapModel] = db.session.execute(db.select(VideoKeywordMapModel).where(VideoKeywordMapModel.video_id == self.v_id)).scalars()
 
         serialized_list = []
@@ -122,14 +131,15 @@ class Video(Resource):
         
         return response
     
-api.add_resource(Video, '/videos/<int:v_id>')
+api.add_resource(Keyframes, '/keyframes/<int:v_id>')    
 
 #Retrieve keyframe from video
 class Keyframe(Resource):
     def get(self, filename, frame_number):
-        filepath = f'keyframes\\{filename}'
-
-        return send_file(os.path.join(filepath, f'{frame_number}.jpg'))
+        try:
+            return send_file(os.path.join(KEYFRAMES_FOLDER, f'{filename}/{frame_number}.jpg'))
+        except:
+            return "File not found", 404
     
 api.add_resource(Keyframe, '/keyframes/<string:filename>/<int:frame_number>')
 

@@ -44,15 +44,5 @@ class VideoKeywordMapModel(db.Model):
     def __repr__(self):
         return f"MapEntry(video_id = {self.video_id}, keyword_id = {self.keyword_id}, frame_ts = {self.frame_ts}, created = {self.created})"
     
-
-# def add_keyword(keyword):
-#         try:
-#             db.session.add()
-#             db.session.commit()
-#         except (IntegrityError):
-#             db.session.rollback()
-#             print("Entry already exists")
-#             return False
-        
 def keyword_does_not_exist(keyword):
     return db.session.execute(db.select(KeywordModel).where(KeywordModel.word == keyword)).first() is None

@@ -6,7 +6,7 @@ from src.routes import api_bp
 from src.models import db, KeywordModel, VideoModel, VideoKeywordMapModel
 import os
 
-UPLOADS_FOLDER = 'backend/uploads'
+UPLOADS_FOLDER = 'uploads'
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///processed_videos.db'

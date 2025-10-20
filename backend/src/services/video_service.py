@@ -9,7 +9,7 @@ from sqlalchemy import desc
 from sqlalchemy.exc import IntegrityError
 import os
 
-KEYFRAMES_FOLDER = 'backend/keyframes'
+KEYFRAMES_FOLDER = 'keyframes'
 if not os.path.exists(KEYFRAMES_FOLDER):
     os.makedirs(KEYFRAMES_FOLDER, exist_ok=True)
 
@@ -61,7 +61,7 @@ class MobileNetProcessor(VideoProcessor):
     17: 'sheep', 18: 'sofa', 19: 'train', 20: 'tvmonitor'}
 
     #Hardcoded network files :/
-    net = cv2.dnn.readNetFromCaffe("backend\src\services\MobileNetSSD_deploy.prototxt", "backend\src\services\MobileNetSSD_deploy.caffemodel")
+    net = cv2.dnn.readNetFromCaffe("src\services\MobileNetSSD_deploy.prototxt", "src\services\MobileNetSSD_deploy.caffemodel")
 
     #return array of detected objects in a list of strings. Takes in threshold confidence as an arg
     #This function also adds any newly detected objects to the embedded vectors database
