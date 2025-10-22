@@ -118,3 +118,5 @@ Using docker seems pretty straightforward so far, but waiting for each build tak
 I guess the long build times actually gives me a chance to go and update the architecture document concurrently so its actually not too bad.
 
 Not sure why the docker image for the python backend is like, 22GB?? That doesn't seem right, feels like I'm doing something wrong somewhere... especially if the frontend takes so much less time to build. I'll probably look into it a bit more, but so far it seems like it has to do with image layering that docker does and maybe the commands in the docker file are just inefficient or something.
+
+I managed to get it down to 12GB but not any less before deciding to move on. Had some issues with docker compose but finally it works!! The documentation and unit tests remain.

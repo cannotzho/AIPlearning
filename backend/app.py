@@ -6,6 +6,10 @@ from src.routes import api_bp
 from src.models import db, KeywordModel, VideoModel, VideoKeywordMapModel
 import os
 
+script_dir = os.path.dirname(os.path.abspath(__file__))
+
+os.chdir(script_dir)
+
 UPLOADS_FOLDER = 'uploads'
 
 app = Flask(__name__)
@@ -44,4 +48,4 @@ def reset_all():
     return redirect('/')
 
 if __name__ == "__main__":
-    app.run(debug = True)
+    app.run(debug = True, host = "0.0.0.0")

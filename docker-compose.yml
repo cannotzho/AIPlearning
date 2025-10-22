@@ -1,0 +1,18 @@
+
+services:
+  server:
+    build: ./backend
+    ports:
+    - "80:5000"
+    volumes:
+    - ./backend:/app
+    environment:
+      FLASK_ENV: development
+  web:
+    build: ./frontend/react-app
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend/react-app:/react-app
+    depends_on:
+      - server
