@@ -28,13 +28,10 @@ docker --version
 docker-compose --version
 
 # Example of running a docker-compose file (assuming you have a docker-compose.yml in the current directory)
-Write-Host "Attempting to run docker-compose up -d (assuming docker-compose.yml exists)..."
-# You should replace 'up -d' with your desired docker-compose command
-# For this example, we'll just demonstrate the command execution.
-# In a real scenario, you'd navigate to the directory containing your docker-compose.yml
-# and then run the command.
+Write-Host "Attempting to run docker-compose up"
+
 try {
-    docker-compose 
+    docker-compose up
     Write-Host "docker-compose command executed successfully (dry run)."
 } catch {
     Write-Host "Failed to execute docker-compose command. Ensure docker-compose.yml exists and Docker Desktop is running."
