@@ -34,7 +34,7 @@ Or use Docker Desktop and run from the UI directly.
 
 ## Usage
 
-Once the frontend and backend service are running, open up a browser and go to http://localhost/5173
+Once the frontend and backend service are running, open up a browser and go to http://localhost:5173
 
 Since the submission uses development versions of both frontend and backend, requests between frontend and backend are being logged on their respective terminals.
 
