@@ -7,6 +7,32 @@ import UploadBtn from "./components/UploadBtn";
 function App() {
   const [displayedVideos, setDisplayedVideos] = useState<Video[]>([]);
   const [selectedVideo, setSelectedVideo] = useState<Video>();
+  const [data, setData] = useState(null);
+  const [status, setStatus] = useState("Pinging...");
+
+  //Polling functino that pings health endpoint
+  const poll = async () => {
+    try {
+      const response = await fetch("/api/health");
+      if (response.ok) {
+        const result = await response.json();
+        setData(result);
+        setStatus("Service is healthy.");
+      } else {
+        setStatus("Service is unhealthy.");
+      }
+    } catch (error) {
+      setStatus("Error connecting to service.");
+      console.error("Ping failed:", error);
+    } finally {
+      // Schedule the next poll after a delay
+      setTimeout(poll, 5000);
+    }
+  };
+
+  useEffect(() => {
+    poll();
+  }, []);
 
   const getVideos = () => {
     fetch("/api/videos/")
@@ -56,7 +82,7 @@ function App() {
           style={{ maxHeight: "100vh" }}
           key="main"
         >
-          {" "}
+          {status}
           {/* Column for main content */}
           <Grid video={selectedVideo}>Video Details</Grid>
         </div>
