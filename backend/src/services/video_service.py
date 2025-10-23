@@ -2,7 +2,7 @@
 
 import cv2
 import numpy as np
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sentence_transformers import SentenceTransformer
 from src.models import db, VideoModel, KeywordModel, VideoKeywordMapModel, keyword_does_not_exist
 from sqlalchemy import desc
@@ -21,14 +21,14 @@ class VideoProcessor(object):
         self.filename = filename
         self.uri = filename.rsplit('.', 1)[0].rsplit('\\', 1)[1]
         self.cap = cv2.VideoCapture(filename)
-        self.created_time = datetime.utcnow()
+
+        self.created_time = datetime.now(timezone.utc).replace(second=0, microsecond=0)
         self.ts_detections_dict = {}
         self.keyframes_path = os.path.join(KEYFRAMES_FOLDER, f'{self.uri}')
         if not os.path.exists(self.keyframes_path):
             os.makedirs(self.keyframes_path, exist_ok=True)
 
-        if keyword_does_not_exist(self.uri):
-        #Add new keyword-vector entry for the filename if it doesn't exist
+        if keyword_does_not_exist(self.uri): #Add new keyword-vector entry for the filename if it doesn't exist
             embedding = self.keyword_vector(self.uri)
             newrow = KeywordModel(word = self.uri, vector = embedding, created = self.created_time)
             db.session.add(newrow)
@@ -102,8 +102,7 @@ class MobileNetProcessor(VideoProcessor):
 
                 # Check if the keyword already exists within the table
                 # (Not sure if this is the best place to do the check but i'll leave it here for now)
-                if keyword_does_not_exist(self.classNames[idx]):
-                    #Add new keyword-vector entry if it doesn't exist
+                if keyword_does_not_exist(self.classNames[idx]): #Add new keyword-vector entry if it doesn't exist
                     embedding = self.keyword_vector(self.classNames[idx])
                     newrow = KeywordModel(word = self.classNames[idx], vector = embedding, created = self.created_time)
                     db.session.add(newrow)
@@ -150,8 +149,7 @@ class MobileNetProcessor(VideoProcessor):
             if d < histogram_threshold and (current_time - last_scene_change >= 1 or last_scene_change == 0):
 
                 #Get frame timestamp
-                frame_ts = str(timedelta(seconds=current_time))[:10]
-                last_scene_change = current_time
+                frame_ts = timedelta(seconds=int(current_time * 100)/100)
 
                 #perform object detection on the frame and assign list of objects to key frame in the timestamp dictionary, and save frame to folder
                 self.ts_detections_dict[frame_ts] = self.detect_objects_in_frame(frame, 0.5, saved_frames)
@@ -173,12 +171,11 @@ class MobileNetProcessor(VideoProcessor):
 
                 v_id = db.session.execute(db.select(VideoModel).order_by(desc(VideoModel.rowid))).scalars().first().rowid
                 k_id = db.session.execute(db.select(KeywordModel).where(KeywordModel.word == keyword)).scalars().first().id
-                mapping_new_row = VideoKeywordMapModel(video_id = v_id, keyword_id = k_id, frame_ts = frame_timestamp, created = self.created_time)
+                mapping_new_row = VideoKeywordMapModel(video_id = v_id, keyword_id = k_id, frame_ts = f"{frame_timestamp}", created = self.created_time)
                 db.session.add(mapping_new_row)
                 db.session.commit()
 
 
 if __name__ == "__main__":
-    #Run process on sample video. This can be run during health check
-    
+
     pass

@@ -1,13 +1,11 @@
 from flask import Blueprint, render_template, redirect, make_response, request, jsonify, send_file
 from flask_restful import Resource, Api, reqparse
 from src.models import db, VideoModel, KeywordModel, VideoKeywordMapModel
-from src.schemas import ma
 from src.schemas.video_schema import VideoSchema
 from src.services.video_service import MobileNetProcessor
 from src.services.search_service import SearchHandler
 from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
-from datetime import datetime
 import os
 
 UPLOAD_FOLDER = 'uploads' # Define your upload folder
@@ -64,8 +62,10 @@ class ProcessedVideo(Resource):
             return redirect('/', 415, {'message': 'File type not allowed'})
         
         filename = os.path.join(UPLOAD_FOLDER, filename)
-        if os.path.exists(filename):
-            return redirect('/', 422, {'message': f'A file already exists at the following path "{filename}"'})
+        counter = 0
+        while os.path.exists(filename):
+            counter += 1
+            filename = filename.rsplit('.', 1)[0] + f" ({counter})." + filename.rsplit('.', 1)[1].lower()
         
         video_file.save(filename)
         
@@ -91,7 +91,6 @@ api.add_resource(ProcessedVideo, '/process')
 #Retrieves all processed videos from the database.
 class Videos(Resource):
     def get(self):
-        # videos = db.paginate(db.select(VideoModel).order_by(VideoModel.created))
         videos = db.session.execute(db.select(VideoModel).order_by(VideoModel.created)).scalars()
         
         video_schema = VideoSchema()
@@ -111,11 +110,33 @@ class Video(Resource):
     def get(self, v_id):
         self.v_id = v_id
         video : VideoModel = db.session.execute(db.select(VideoModel).where(VideoModel.rowid == self.v_id)).scalars().first()
+        if video == None:
+            return "Video not found in database", 404
         file_path = os.path.join(UPLOAD_FOLDER, f'{video.uri}.mp4')
-        return send_file(file_path)
-    
+
+        if os.path.exists(file_path):
+            return send_file(file_path)
+        else:
+            return jsonify({"detail": "Video not found in uploads",}), 404
+        
+    def delete(self, v_id):
+        self.v_id = v_id
+        video : VideoModel = db.session.execute(db.select(VideoModel).where(VideoModel.rowid == self.v_id)).scalars().first()
+        file_path = os.path.join(UPLOAD_FOLDER, f'{video.uri}.mp4')
+        if os.path.exists(file_path):
+            db.session.delete(video)
+            associations : VideoKeywordMapModel = db.session.execute(db.select(VideoKeywordMapModel).where(VideoKeywordMapModel.video_id == self.v_id)).scalars()
+            db.session.delete(associations)
+            db.session.commit()
+            os.remove(file_path)
+            return redirect('/',"Video deleted", 204)
+        
+        else:
+            return redirect('/', 404)
+ 
 api.add_resource(Video, '/videos/<int:v_id>')
 
+#Retrieve list of keyframe timestamps with video id
 class Keyframes(Resource):
     def get(self, v_id):
         self.v_id = v_id
@@ -133,7 +154,7 @@ class Keyframes(Resource):
     
 api.add_resource(Keyframes, '/keyframes/<int:v_id>')    
 
-#Retrieve keyframe from video
+#Retrieve keyframe image from video
 class Keyframe(Resource):
     def get(self, filename, frame_number):
         try:
@@ -158,6 +179,19 @@ class SearchResult(Resource):
     def get(self):
         search_query, search_type = request.args.get('query'), request.args.get('search_type')
         search_handler = SearchHandler()
+        if search_query == "":
+            videos = db.session.execute(db.select(VideoModel).order_by(VideoModel.created)).scalars()
+            
+            video_schema = VideoSchema()
+            serialized_list = []
+            for video in videos:
+                serialized_list.append(video_schema.dump(video))
+            
+            headers = {'Content-Type': 'application/json'}
+            response = make_response(jsonify(serialized_list), 200, headers)
+            
+            return response
+        
         result = search_handler.process_search_results(query=search_query, search_type=search_type)
         video_schema = VideoSchema()
         serialized_list = []

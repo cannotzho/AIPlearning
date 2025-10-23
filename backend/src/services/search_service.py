@@ -29,7 +29,8 @@ class SearchHandler(object):
         embedded_vector = self.st_model.encode(search_query)
         result = self.kdt.query(embedded_vector, k=k, return_distance=False)
         return result
-
+    
+    #Experimental function to encode query word-by-word. Not used.
     def get_word_ann(self, search_query, k : int = 1):
         
         words = search_query.split(' ')
@@ -63,6 +64,7 @@ class SearchHandler(object):
                 associated_videos.append(row.video)
         return associated_videos
     
+    #Function to get videos from video table using vectorized filenames
     def get_associated_videos_from_filename(self, filename_indices : list[int]):
         associated_videos = []
         #For each keyword, get all videos associated with that keyword via the map
@@ -93,6 +95,6 @@ class SearchHandler(object):
 
         return associated_videos
 
-    #Test function for checking database    
+    #Test function for checking database with basic html
     def display_associations(self):
         print(db.session.execute(db.select(VideoKeywordMapModel)).scalars().all())
