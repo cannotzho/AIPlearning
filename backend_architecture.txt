@@ -1,0 +1,27 @@
+backend/
+├── src/
+│   ├── services/
+│   │   └── video_service.py    #Provides key frame extraction, object detection and writing to database functionality
+│   │   └── search_service.py   #Provides search functionality
+│   ├── schemas/    #Schemas for sending model data in JSON
+│   │   └── __init__.py
+│   │   └── video_schema.py
+│   ├── models.py   #Models for database
+│   └── routes.py   #Acts as the controller
+├── tests/
+│   └── test_suite.py   #tests for endpoints, object detection accuracy and frame extraction
+├── keyframes/
+│   └── video_name/
+│       └── 0.jpg   #keyframes saved and accessed by /video_name/int in keyframes folder
+├── uploads/
+│   └── video_name.mp4  #video files saved and accessed by video name in uploads folder
+├── instance/
+│   └── processed_videos.db #SQLite .db file
+├── templates/   #html files for backend testing
+├── /env    #dependencies
+├── app.py  #main entry point
+├── requirements.txt    #for docker buildfile to build necessary dependencies
+├── .dockerignore    #for docker build
+├── Dockerfile    #for docker build
+├── MobileNetSSD_deploy.caffemodel
+└── MobileNetSSD_deploy.prototxt    #Object Detection models
