@@ -19,7 +19,7 @@ class VideoProcessor(object):
  
     def __init__(self, filename):
         self.filename = filename
-        self.uri = filename.rsplit('.', 1)[0].rsplit('\\', 1)[1]
+        self.uri = os.path.basename(filename).rsplit('.', 1)[0]
         self.cap = cv2.VideoCapture(filename)
 
         self.created_time = datetime.now(timezone.utc).replace(second=0, microsecond=0)
