@@ -6,6 +6,7 @@ services:
     - "80:5000"
     volumes:
     - ./backend:/app
+    - ./data:/app/instance
     environment:
       FLASK_ENV: development
   web:
