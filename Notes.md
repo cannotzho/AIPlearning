@@ -120,3 +120,15 @@ I guess the long build times actually gives me a chance to go and update the arc
 Not sure why the docker image for the python backend is like, 22GB?? That doesn't seem right, feels like I'm doing something wrong somewhere... especially if the frontend takes so much less time to build. I'll probably look into it a bit more, but so far it seems like it has to do with image layering that docker does and maybe the commands in the docker file are just inefficient or something.
 
 I managed to get it down to 12GB but not any less before deciding to move on. Had some issues with docker compose but finally it works!! The documentation and unit tests remain.
+
+    a) Write three unit tests for the backend and frontend each. Include instructions on how to run the tests in the README.
+    * Backend tests should include testing the frame extraction logic, object detection accuracy, and API endpoints.
+    * Frontend tests should cover the upload functionality, search feature, and video result display.
+
+Starting with the backend... I guess a single python file will work to include tests for all 3. Based on what I saw online, the key thing is to test for behaviour rather than implementation, i.e. expected outcomes based on the input. I'll also follow the recommended pattern for readability and clarity i guess.
+
+Writing good tests is pretty hard! I doubt the ones I have are very good but I feel inclined to wrap up this assessment soon and submit what I have, though unsatisfactory. At the very least, I managed to find a CPU-only wheel install for torch which SIGNIFICANTLY reduced the image size from 12Gb to 2Gb. Apparently, it's normal for images with torch to be that large but it still feels like something is wrong about the way I build my docker image... oh well. At this point, It's been almost 4 weeks since I received the assessment. Though I've mostly been working on the weekends, I've probably spent 8-10 full days on it already.
+
+I'm done with the backend tests... to be honest I don't really think they can be called unit tests. For test objectives like frame extraction logic and detection accuracy, aren't those more like whole services? As for the endpoints, I guess I could have just pinged each one and check for a 200 response but then it would only be testing that the endpoints are live and have the correct url? Testing if the endpoints are returning the right values also seems more like a kind of integration test than unit test.
+
+Going over the architecture draft i had, I realized that I didn't containerize the db separately. Thought I was going to have to make some major changes but it looks like all I need to do is mount a volume for the existing docker container. I can add another folder in the main repo that won't be touched by either frontend or backend during the build process.
