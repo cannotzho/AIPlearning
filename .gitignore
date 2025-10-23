@@ -1,6 +1,5 @@
 /Examples
 *.pyc
 *.pyc
-*.mp4
 /backend/keyframes
 **/env
